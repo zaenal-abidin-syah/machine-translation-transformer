@@ -4,6 +4,9 @@ from tokenizers.models import WordLevel
 from tokenizers.trainers import WordLevelTrainer
 from tokenizers.pre_tokenizers import Whitespace
 
+
+
+
 import re
 import string
 
@@ -19,6 +22,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset, random_split
 import math
+from evaluate import load
 from model import build_transformer
 from dataset import BilingualDataset, causal_mask
 from config import get_config, get_weights_file_path
@@ -289,8 +293,8 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
   count = 0
 
   # source_texts = []
-  # expected = []
-  # predicted = []
+  # references = []
+  # predictions = []
 
   console_width = 80
 
@@ -308,13 +312,13 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
       model_out_text = tokenizer_tgt.decode(model_out.detach().cpu().numpy())
 
       # source_texts.append(source_text)
-      # expected.append(target_text)
-      # predicted.append(model_out_text)
+      # references.append(target_text)
+      # predictions.append(model_out_text)
 
       print_msg("-" * console_width)
       print_msg(f"Source: {source_text}")
       print_msg(f"Target: {target_text}")
-      print_msg(f"Predicted: {model_out_text}")
+      print_msg(f"predictions: {model_out_text}")
 
       if count == num_examples:
         break
@@ -328,8 +332,9 @@ def majority_vote(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, d
   count = 0
 
   source_texts = []
-  expected = []
-  predicted = []
+  references = []
+  predictions = []
+  bleu_metric = load("bleu")
 
   console_width = 80
 
@@ -347,14 +352,15 @@ def majority_vote(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, d
       model_out_text = tokenizer_tgt.decode(model_out.detach().cpu().numpy())
 
       source_texts.append(source_text)
-      expected.append(target_text)
-      predicted.append(model_out_text)
+      references.append(target_text)
+      predictions.append(model_out_text)
 
       print_msg("-" * console_width)
       print_msg(f"Source: {source_text}")
       print_msg(f"Target: {target_text}")
-      print_msg(f"Predicted: {model_out_text}")
+      print_msg(f"predictions: {model_out_text}")
 
-      if count == num_examples:
-        return source_texts, expected, predicted
+      # if count == num_examples:
+      #   return source_texts, references, predictions
         # break
+    print_msg(f"BLEU: {bleu_metric.compute(predictions=[model_out_text], references=[[target_text]])['bleu']*100:.2f}")
