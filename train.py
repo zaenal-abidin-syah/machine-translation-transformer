@@ -25,9 +25,9 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset, random_split
 import math
 from evaluate import load
-from mt.model import build_transformer
-from mt.dataset import BilingualDataset, causal_mask
-from mt.config import get_config, get_weights_file_path
+from model import build_transformer
+from dataset import BilingualDataset, causal_mask
+from config import get_config, get_weights_file_path
 # def get_all_sentences(ds, lang):
 #   for item in ds:
 #     yield item['translation'][lang]
