@@ -17,15 +17,17 @@ from torch.utils.tensorboard import SummaryWriter
 # from config import get_config, get_weights_file_path
 # from dataset import BilingualDataset, causal_mask
 
+from datasets import Dataset
+import io
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset, random_split
 import math
 from evaluate import load
-from model import build_transformer
-from dataset import BilingualDataset, causal_mask
-from config import get_config, get_weights_file_path
+from mt.model import build_transformer
+from mt.dataset import BilingualDataset, causal_mask
+from mt.config import get_config, get_weights_file_path
 # def get_all_sentences(ds, lang):
 #   for item in ds:
 #     yield item['translation'][lang]
@@ -84,8 +86,6 @@ def preprocess_dataset(ds, lang_src, lang_tgt):
     return ds
 
 
-from datasets import Dataset
-import io
 
 def load_parallel_txt(src_path: str,
                       tgt_path: str,
