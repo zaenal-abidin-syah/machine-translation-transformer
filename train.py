@@ -192,8 +192,8 @@ def get_ds(config):
   return train_dataloader, val_dataloader, tokenizer_src, tokenizer_tgt
 
 
-def get_model(config, vocab_src_len, vocab_tgt_len):
-  model = build_transformer(vocab_src_len, vocab_tgt_len, config["seq_len"], config["seq_len"])
+def get_model(config, vocab_src_len, vocab_tgt_len, N, h):
+  model = build_transformer(vocab_src_len, vocab_tgt_len, config["seq_len"], config["seq_len"], N=N, h=h)
   return model
 
 def train_model(config, train_dataloader, val_dataloader, tokenizer_src, tokenizer_tgt):
@@ -202,7 +202,7 @@ def train_model(config, train_dataloader, val_dataloader, tokenizer_src, tokeniz
 
   Path(config["model_folder"]).mkdir(parents=True, exist_ok=True)
   # train_dataloader, val_dataloader, tokenizer_src, tokenizer_tgt = get_ds(config=config)
-  model = get_model(config=config, vocab_src_len=tokenizer_src.get_vocab_size(), vocab_tgt_len=tokenizer_tgt.get_vocab_size()).to(device=device)
+  model = get_model(config=config, vocab_src_len=tokenizer_src.get_vocab_size(), vocab_tgt_len=tokenizer_tgt.get_vocab_size(), N=config["N"], h=config["h"]).to(device=device)
 
   # tensorboard
   writer = SummaryWriter(config["experiment_name"])
@@ -254,7 +254,7 @@ def train_model(config, train_dataloader, val_dataloader, tokenizer_src, tokeniz
 
     run_validation(model, val_dataloader, tokenizer_src, tokenizer_tgt, config["seq_len"], device, lambda msg: batch_iterator.write(msg), global_step, writer)
 
-    if (epoch + 1) % 10 == 0 or (epoch + 1) == config["num_epochs"]:
+    if (epoch + 1) % 1 == 0 or (epoch + 1) == config["num_epochs"]:
       model_filename = get_weights_file_path(config, f"{epoch:02d}")
       torch.save(
         {
