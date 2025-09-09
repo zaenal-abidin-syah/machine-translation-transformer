@@ -194,7 +194,7 @@ def build_transformer(
   N: int = 2,
   h: int=4,
   dropout: float=0.1,
-  d_ff: int = 2048
+  d_ff: int = 1024
 )-> Transformer:
   # create embeddings layer
   src_embed = InputEmbeddings(d_model, src_vocab_size)
