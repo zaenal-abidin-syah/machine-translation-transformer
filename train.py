@@ -253,18 +253,18 @@ def train_model(config, train_dataloader, val_dataloader, tokenizer_src, tokeniz
       global_step += 1
 
     run_validation(model, val_dataloader, tokenizer_src, tokenizer_tgt, config["seq_len"], device, lambda msg: batch_iterator.write(msg), global_step, writer)
+    model_filename = get_weights_file_path(config, f"{epoch:02d}")
+    torch.save(
+      {
+      "epoch": epoch,
+      "model_state_dict": model.state_dict(),
+      "optimizer_state_dict" : optimizer.state_dict(),
+      "global_step": global_step
+    },
+    model_filename
+    )
 
-    if (epoch + 1) % 1 == 0 or (epoch + 1) == config["num_epochs"]:
-      model_filename = get_weights_file_path(config, f"{epoch:02d}")
-      torch.save(
-        {
-        "epoch": epoch,
-        "model_state_dict": model.state_dict(),
-        "optimizer_state_dict" : optimizer.state_dict(),
-        "global_step": global_step
-      },
-      model_filename
-      )
+    # if (epoch + 1) % 1 == 0 or (epoch + 1) == config["num_epochs"]:
 
 def greedy_decode(model, source, source_mask, tokenizer_src, tokenizer_tgt, max_len, device):
   sos_idx = tokenizer_tgt.token_to_id("[SOS]")
@@ -288,53 +288,13 @@ def greedy_decode(model, source, source_mask, tokenizer_src, tokenizer_tgt, max_
       break
   return decoder_input.squeeze(0)
 
-def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, device, print_msg, global_state, writer, num_examples=2):
-  model.eval()
-  count = 0
-
-  # source_texts = []
-  # references = []
-  # predictions = []
-
-  console_width = 80
-
-  with torch.no_grad():
-    for batch in validation_ds:
-      count += 1
-      encoder_input = batch["encoder_input"].to(device)
-      encoder_mask = batch["encoder_mask"].to(device)
-      assert encoder_input.size(0) == 1, "Batch size must be 1 for validation"
-
-      model_out = greedy_decode(model, encoder_input, encoder_mask, tokenizer_src, tokenizer_tgt, max_len, device)
-
-      source_text = batch["src_text"][0]
-      target_text = batch["tgt_text"][0]
-      model_out_text = tokenizer_tgt.decode(model_out.detach().cpu().numpy())
-
-      # source_texts.append(source_text)
-      # references.append(target_text)
-      # predictions.append(model_out_text)
-
-      print_msg("-" * console_width)
-      print_msg(f"Source: {source_text}")
-      print_msg(f"Target: {target_text}")
-      print_msg(f"predictions: {model_out_text}")
-
-      if count == num_examples:
-        break
-
-  # if writer:
-  #   # torchmetrics CharErrorRate, BLUE, WordErrorRate, etc can be used here
-  #   pass
-
-def majority_vote(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, device, print_msg, global_state, writer, num_examples=2):
+def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, device, print_msg, global_state, writer, num_examples=2, return_text=False):
   model.eval()
   count = 0
 
   source_texts = []
   references = []
   predictions = []
-  bleu_metric = load("bleu")
 
   console_width = 80
 
@@ -360,7 +320,84 @@ def majority_vote(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, d
       print_msg(f"Target: {target_text}")
       print_msg(f"predictions: {model_out_text}")
 
+      if count == num_examples and not return_text:
+        break
+  
+  if writer:
+    writer.flush()
+    # compute metrics like BLEU, WER, CER, etc here
+    # bleu_metric = load("bleu")
+    # print_msg(f"BLEU: {bleu_metric.compute(predictions=predictions, references=[[ref] for ref in references])['bleu']*100:.2f}")
+    bleu_metric = load("bleu")
+    print_msg(f"BLEU: {bleu_metric.compute(predictions=[predictions], references=[[target_text]])['bleu']*100:.2f}")
+    # torchmetrics CharErrorRate, BLUE, WordErrorRate, etc can be used here
+    # pass
+  if return_text:
+    return predictions
+
+def majority_vote(models, validation_ds, tokenizer_src, tokenizer_tgt, max_len, device, print_msg, global_state, writer, num_examples=2):
+  # model.eval()
+  count = 0
+
+  # source_texts = []
+  references = []
+  predictions = {}
+  predictions["majority_vote"] = []
+  for model_name in models.keys():
+    references[model_name] = []
+    predictions[model_name] = []
+  # bleu_metric = load("bleu")
+
+  with torch.no_grad():
+    for batch in validation_ds:
+      count += 1
+      encoder_input = batch["encoder_input"].to(device)
+      encoder_mask = batch["encoder_mask"].to(device)
+      assert encoder_input.size(0) == 1, "Batch size must be 1 for validation"
+      # source_text = batch["src_text"][0]
+      target_text = batch["tgt_text"][0]
+      references.append(target_text)
+      for model_name, model in models.items():
+        model.eval()
+        model_out = greedy_decode(model, encoder_input, encoder_mask, tokenizer_src, tokenizer_tgt, max_len, device)
+        model_out_text = tokenizer_tgt.decode(model_out.detach().cpu().numpy())
+        # references[model_name].append(target_text)
+        predictions[model_name].append(model_out_text)
+
+  for idx in list(models.keys())[-1]:
+    list_of_predictions = []
+    max_len = 0
+    for model_name in models.keys():
+      pred = predictions[model_name][idx].split()
+      list_of_predictions.append(pred)
+      max_len = max(max_len, len(pred))
+    for i in range(max_len):
+      word_count = {}
+      for pred in list_of_predictions:
+        if i < len(pred):
+          word = pred[i]
+          if word in word_count:
+            word_count[word] += 1
+          else:
+            word_count[word] = 1
+      if word_count:
+        majority_word = max(word_count, key=word_count.get)
+        predictions["majority_vote"].append(majority_word)
+      else:
+        break
+  return predictions, references
+    # predictions["majority_vote"] = []
+
+
+
+      # source_texts.append(source_text)
+
+      # print_msg("-" * console_width)
+      # print_msg(f"Source: {source_text}")
+      # print_msg(f"Target: {target_text}")
+      # print_msg(f"predictions: {model_out_text}")
+
       # if count == num_examples:
       #   return source_texts, references, predictions
         # break
-    print_msg(f"BLEU: {bleu_metric.compute(predictions=[model_out_text], references=[[target_text]])['bleu']*100:.2f}")
+    # print_msg(f"BLEU: {bleu_metric.compute(predictions=[model_out_text], references=[[target_text]])['bleu']*100:.2f}")
