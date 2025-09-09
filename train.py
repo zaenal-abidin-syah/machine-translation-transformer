@@ -292,9 +292,9 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
   model.eval()
   count = 0
 
-  source_texts = []
-  references = []
-  predictions = []
+  # source_texts = []
+  # references = []
+  # predictions = []
 
   console_width = 80
 
@@ -311,29 +311,29 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
       target_text = batch["tgt_text"][0]
       model_out_text = tokenizer_tgt.decode(model_out.detach().cpu().numpy())
 
-      source_texts.append(source_text)
-      references.append(target_text)
-      predictions.append(model_out_text)
+      # source_texts.append(source_text)
+      # references.append(target_text)
+      # predictions.append(model_out_text)
 
       print_msg("-" * console_width)
       print_msg(f"Source: {source_text}")
       print_msg(f"Target: {target_text}")
       print_msg(f"predictions: {model_out_text}")
 
-      if count == num_examples and not return_text:
+      if count == num_examples:
         break
   
-  if writer:
-    writer.flush()
-    # compute metrics like BLEU, WER, CER, etc here
-    # bleu_metric = load("bleu")
-    # print_msg(f"BLEU: {bleu_metric.compute(predictions=predictions, references=[[ref] for ref in references])['bleu']*100:.2f}")
-    bleu_metric = load("bleu")
-    print_msg(f"BLEU: {bleu_metric.compute(predictions=[predictions], references=[[target_text]])['bleu']*100:.2f}")
+  # if writer:
+  #   writer.flush()
+  #   # compute metrics like BLEU, WER, CER, etc here
+  #   # bleu_metric = load("bleu")
+  #   # print_msg(f"BLEU: {bleu_metric.compute(predictions=predictions, references=[[ref] for ref in references])['bleu']*100:.2f}")
+  #   bleu_metric = load("bleu")
+  #   print_msg(f"BLEU: {bleu_metric.compute(predictions=[predictions], references=[[target_text]])['bleu']*100:.2f}")
     # torchmetrics CharErrorRate, BLUE, WordErrorRate, etc can be used here
     # pass
-  if return_text:
-    return predictions
+  # if return_text:
+  #   return predictions
 
 def majority_vote(models, validation_ds, tokenizer_src, tokenizer_tgt, max_len, device, print_msg, global_state, writer, num_examples=2):
   # model.eval()
