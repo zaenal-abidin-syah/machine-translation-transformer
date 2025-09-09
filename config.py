@@ -15,7 +15,7 @@ def get_config():
     "model_folder": "weights/model_1",
     "model_basename": "tmodel_",
     "preload": "149",
-    "tokenizer_file":"./tokenizer_{0}.json",
+    "tokenizer_file":"./mt/tokenizer_{0}.json",
     "experiment_name": "runs/tmodel"
   },
   "model_2": {
@@ -31,7 +31,7 @@ def get_config():
     "model_folder": "weights/model_2",
     "model_basename": "tmodel_",
     "preload": "119",
-    "tokenizer_file":"./tokenizer_{0}.json",
+    "tokenizer_file":"./mt/tokenizer_{0}.json",
     "experiment_name": "runs/tmodel"
   },
   "model_3": {
@@ -47,7 +47,7 @@ def get_config():
     "model_folder": "weights/model_3",
     "model_basename": "tmodel_",
     "preload": "99",
-    "tokenizer_file":"./tokenizer_{0}.json",
+    "tokenizer_file":"./mt/tokenizer_{0}.json",
     "experiment_name": "runs/tmodel"
   }
   }
