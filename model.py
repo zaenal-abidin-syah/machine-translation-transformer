@@ -30,7 +30,7 @@ class PositionalEmbeddings(nn.Module):
     pe = pe.unsqueeze(0) # (1, seq_len, d_model)
     self.register_buffer('pe', pe)
   def forward(self, x):
-    x = x + (self.pe[:, :x.shape[1], :]).requires_grad_(False)
+    x = x + (self.pe[:, :x.shape[1], :]).requires_grad_(False) # type: ignore
     return self.dropout(x)
   
 class LayerNormalization(nn.Module):
